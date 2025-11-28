@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { useEffect } from 'react';
-import { problems } from '../data/problems';
+import { useEffect, useMemo } from 'react';
+import { problems, jobCategories } from '../data/problems';
 import ProblemCard from '../components/ProblemCard';
 
 export default function ProblemSelect() {
@@ -18,6 +18,23 @@ export default function ProblemSelect() {
     setSelectedProblem(problem, image);
     navigate('/solution-select');
   };
+
+  // problems를 ProblemCard가 기대하는 형태로 변환
+  const formattedProblems = useMemo(() => {
+    return problems.map(problem => {
+      // 문제가 속한 카테고리 찾기
+      const category = jobCategories.find(cat => 
+        cat.problems.includes(problem.title)
+      );
+      
+      return {
+        title: problem.title,
+        description: `${problem.title} 상황에 대한 해결 방법을 찾아보세요.`,
+        image: problem.image,
+        icon: category?.icon || 'ri-question-line'
+      };
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -62,7 +79,7 @@ export default function ProblemSelect() {
       {/* Problems Grid */}
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {problems.map((problem, index) => (
+          {formattedProblems.map((problem, index) => (
             <ProblemCard
               key={index}
               problem={problem}

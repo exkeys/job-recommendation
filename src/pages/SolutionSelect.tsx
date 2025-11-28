@@ -2,11 +2,10 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEffect, useState } from 'react';
 import { generateSolutions } from '../api/openai';
-import SolutionButton from '../components/SolutionButton';
 
 export default function SolutionSelect() {
   const navigate = useNavigate();
-  const { selectedJob, selectedProblem, selectedImage, aiSolutions, setAiSolutions } = useStore();
+  const { selectedJob, selectedProblem, aiSolutions, setAiSolutions } = useStore();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -24,7 +23,18 @@ export default function SolutionSelect() {
     setLoading(true);
     try {
       const solutions = await generateSolutions(selectedJob, selectedProblem);
-      setAiSolutions(solutions);
+      // 문자열 배열을 객체 배열로 변환
+      const formattedSolutions = solutions.map((solution, index) => {
+        if (typeof solution === 'string') {
+          const parts = solution.split(':');
+          return {
+            title: parts[0] || `솔루션 ${index + 1}`,
+            description: parts.slice(1).join(':').trim() || solution
+          };
+        }
+        return solution;
+      });
+      setAiSolutions(formattedSolutions as any);
     } catch (error) {
       console.error('Failed to generate solutions:', error);
       setAiSolutions([
@@ -40,7 +50,7 @@ export default function SolutionSelect() {
           title: '결과 검증 및 개선',
           description: '실행 결과를 검증하고 피드백을 수집합니다. 지속적인 개선을 통해 더 나은 방법을 찾아갑니다.'
         }
-      ]);
+      ] as any);
     } finally {
       setLoading(false);
     }
@@ -123,7 +133,7 @@ export default function SolutionSelect() {
           <div className="flex justify-center">
             <div className="relative w-full max-w-2xl h-80 rounded-3xl overflow-hidden shadow-2xl border border-slate-800/50">
               <img 
-                src={`https://readdy.ai/api/search-image?query=$%7BencodeURIComponent%28getContextualImage%28%29%29%7D&width=800&height=400&seq=solution-${selectedProblem.replace(/\s+/g, '-')}&orientation=landscape`}
+                src={`https://readdy.ai/api/search-image?query=${encodeURIComponent(getContextualImage())}&width=800&height=400&seq=solution-${selectedProblem.replace(/\s+/g, '-')}&orientation=landscape`}
                 alt={selectedProblem}
                 className="w-full h-full object-cover object-top"
               />
@@ -149,35 +159,42 @@ export default function SolutionSelect() {
           </div>
         ) : (
           <div className="space-y-8">
-            {aiSolutions.slice(0, 3).map((solution, index) => (
-              <div
-                key={index}
-                className="group relative bg-white rounded-3xl p-12 hover:shadow-2xl transition-all duration-500 border border-slate-100"
-              >
-                {/* Decorative Background Element */}
-                <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-slate-50 to-transparent rounded-bl-full opacity-50"></div>
-                
-                <div className="relative flex items-start gap-8">
-                  {/* Number Badge - Premium Style */}
-                  <div className="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-slate-900 to-slate-700 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg">
-                    <span className="text-4xl font-semibold text-white">{index + 1}</span>
+            {aiSolutions.slice(0, 3).map((solution, index) => {
+              // solution이 문자열인 경우 처리
+              const solutionObj = typeof solution === 'string' 
+                ? { title: `솔루션 ${index + 1}`, description: solution }
+                : solution as { title: string; description: string };
+              
+              return (
+                <div
+                  key={index}
+                  className="group relative bg-white rounded-3xl p-12 hover:shadow-2xl transition-all duration-500 border border-slate-100"
+                >
+                  {/* Decorative Background Element */}
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-slate-50 to-transparent rounded-bl-full opacity-50"></div>
+                  
+                  <div className="relative flex items-start gap-8">
+                    {/* Number Badge - Premium Style */}
+                    <div className="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-slate-900 to-slate-700 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg">
+                      <span className="text-4xl font-semibold text-white">{index + 1}</span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1">
+                      <h3 className="text-3xl font-bold text-slate-900 mb-6 leading-tight tracking-tight">
+                        {solutionObj.title}
+                      </h3>
+                      <p className="text-slate-600 leading-relaxed text-lg font-normal">
+                        {solutionObj.description}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1">
-                    <h3 className="text-3xl font-bold text-slate-900 mb-6 leading-tight tracking-tight">
-                      {solution.title}
-                    </h3>
-                    <p className="text-slate-600 leading-relaxed text-lg font-normal">
-                      {solution.description}
-                    </p>
-                  </div>
+                  {/* Bottom Accent */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 opacity-0 group-hover:opacity-100 transition-opacity rounded-b-3xl"></div>
                 </div>
-
-                {/* Bottom Accent */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 opacity-0 group-hover:opacity-100 transition-opacity rounded-b-3xl"></div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

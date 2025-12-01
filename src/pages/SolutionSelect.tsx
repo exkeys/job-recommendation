@@ -2,11 +2,16 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useEffect, useState } from 'react';
 import { generateSolutions } from '../api/openai';
+import PageHeader from '../components/PageHeader';
 
 export default function SolutionSelect() {
   const navigate = useNavigate();
   const { selectedJob, selectedProblem, aiSolutions, setAiSolutions } = useStore();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     if (!selectedJob || !selectedProblem) {
@@ -96,18 +101,7 @@ export default function SolutionSelect() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
-          >
-            <i className="ri-arrow-left-line text-xl"></i>
-            <span className="font-medium text-sm">뒤로가기</span>
-          </button>
-        </div>
-      </header>
+      <PageHeader onBack={() => navigate(-1)} />
 
       {/* Hero Section */}
       <div className="relative py-20 px-6 overflow-hidden">
@@ -116,7 +110,7 @@ export default function SolutionSelect() {
           <div className="absolute bottom-10 left-10 w-96 h-96 bg-slate-600/20 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
+        <div className="relative z-10 max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-full mb-8">
             <i className="ri-sparkling-2-fill text-slate-400"></i>
             <span className="text-sm text-slate-300">AI 맞춤 솔루션</span>
@@ -131,7 +125,7 @@ export default function SolutionSelect() {
 
           {/* Contextual Image - Moved Below */}
           <div className="flex justify-center">
-            <div className="relative w-full max-w-2xl h-80 rounded-3xl overflow-hidden shadow-2xl border border-slate-800/50">
+            <div className="relative w-full max-w-4xl h-80 rounded-3xl overflow-hidden shadow-2xl border border-slate-800/50">
               <img 
                 src={`https://readdy.ai/api/search-image?query=${encodeURIComponent(getContextualImage())}&width=800&height=400&seq=solution-${selectedProblem.replace(/\s+/g, '-')}&orientation=landscape`}
                 alt={selectedProblem}
@@ -140,8 +134,6 @@ export default function SolutionSelect() {
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent"></div>
               <div className="absolute bottom-6 left-6 right-6">
                 <div className="flex items-center gap-3 text-white">
-                  <span className="text-sm font-medium px-3 py-1 bg-slate-800/80 backdrop-blur-sm rounded-full">{selectedJob}</span>
-                  <i className="ri-arrow-right-s-line text-slate-400"></i>
                   <span className="font-semibold">{selectedProblem}</span>
                 </div>
               </div>
@@ -151,14 +143,14 @@ export default function SolutionSelect() {
       </div>
 
       {/* Solutions Grid */}
-      <div className="max-w-4xl mx-auto px-6 pb-24">
+      <div className="max-w-5xl mx-auto px-6 pb-32">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-16 h-16 border-4 border-slate-800 border-t-slate-600 rounded-full animate-spin mb-6"></div>
             <p className="text-lg text-slate-400">AI가 솔루션을 생성하고 있습니다...</p>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {aiSolutions.slice(0, 3).map((solution, index) => {
               // solution이 문자열인 경우 처리
               const solutionObj = typeof solution === 'string' 
@@ -168,66 +160,30 @@ export default function SolutionSelect() {
               return (
                 <div
                   key={index}
-                  className="group relative bg-white rounded-3xl p-12 hover:shadow-2xl transition-all duration-500 border border-slate-100"
+                  className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/50 hover:bg-slate-800/70 transition-all duration-300"
                 >
-                  {/* Decorative Background Element */}
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-slate-50 to-transparent rounded-bl-full opacity-50"></div>
-                  
-                  <div className="relative flex items-start gap-8">
-                    {/* Number Badge - Premium Style */}
-                    <div className="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-slate-900 to-slate-700 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform shadow-lg">
-                      <span className="text-4xl font-semibold text-white">{index + 1}</span>
+                  <div className="flex items-start gap-4">
+                    {/* Number Badge */}
+                    <div className="flex-shrink-0 w-10 h-10 bg-slate-700/80 border border-slate-600/50 rounded-lg flex items-center justify-center">
+                      <span className="text-lg font-semibold text-white">{index + 1}</span>
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1">
-                      <h3 className="text-3xl font-bold text-slate-900 mb-6 leading-tight tracking-tight">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl font-semibold text-white mb-3 leading-tight">
                         {solutionObj.title}
                       </h3>
-                      <p className="text-slate-600 leading-relaxed text-lg font-normal">
+                      <p className="text-slate-300 leading-relaxed text-base">
                         {solutionObj.description}
                       </p>
                     </div>
                   </div>
-
-                  {/* Bottom Accent */}
-                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 opacity-0 group-hover:opacity-100 transition-opacity rounded-b-3xl"></div>
                 </div>
               );
             })}
           </div>
         )}
       </div>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-800/50 py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center">
-                <i className="ri-sparkling-2-fill text-white text-lg"></i>
-              </div>
-              <span className="text-lg font-bold text-white">CareerAI</span>
-            </div>
-
-            <div className="flex items-center gap-6">
-              <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                <i className="ri-twitter-x-line text-xl"></i>
-              </a>
-              <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                <i className="ri-linkedin-fill text-xl"></i>
-              </a>
-              <a href="#" className="text-slate-400 hover:text-white transition-colors">
-                <i className="ri-github-fill text-xl"></i>
-              </a>
-            </div>
-
-            <p className="text-slate-500 text-sm">
-              © 2024 CareerAI. All rights reserved. | <a href="https://readdy.ai/?origin=logo" target="_blank" rel="noopener noreferrer" className="hover:text-slate-400 transition-colors">Powered by Readdy</a>
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

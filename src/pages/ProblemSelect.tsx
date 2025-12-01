@@ -3,10 +3,15 @@ import { useStore } from '../store/useStore';
 import { useEffect, useMemo } from 'react';
 import { problems, jobCategories } from '../data/problems';
 import ProblemCard from '../components/ProblemCard';
+import PageHeader from '../components/PageHeader';
 
 export default function ProblemSelect() {
   const navigate = useNavigate();
   const { selectedJob, setSelectedProblem } = useStore();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     if (!selectedJob) {
@@ -19,46 +24,38 @@ export default function ProblemSelect() {
     navigate('/solution-select');
   };
 
-  // problems를 ProblemCard가 기대하는 형태로 변환
+  // 선택한 직군에 맞는 문제만 필터링
   const formattedProblems = useMemo(() => {
-    return problems.map(problem => {
-      // 문제가 속한 카테고리 찾기
-      const category = jobCategories.find(cat => 
-        cat.problems.includes(problem.title)
-      );
-      
+    // selectedJob에 해당하는 직군 카테고리 찾기
+    const selectedCategory = jobCategories.find(cat => 
+      cat.name === selectedJob
+    );
+    
+    if (!selectedCategory) {
+      return [];
+    }
+    
+    // 선택한 직군의 문제 목록만 필터링
+    const filteredProblems = problems.filter(problem => 
+      selectedCategory.problems.includes(problem.title)
+    );
+    
+    return filteredProblems.map(problem => {
       return {
         title: problem.title,
         description: `${problem.title} 상황에 대한 해결 방법을 찾아보세요.`,
         image: problem.image,
-        icon: category?.icon || 'ri-question-line'
+        icon: selectedCategory.icon
       };
     });
-  }, []);
+  }, [selectedJob]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
-          >
-            <i className="ri-arrow-left-line text-xl"></i>
-            <span className="font-medium text-sm">돌아가기</span>
-          </button>
-          
-          <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-lg">
-              <span className="text-sm text-slate-300">{selectedJob}</span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader onBack={() => navigate(-1)} />
 
       {/* Title Section */}
-      <div className="sticky top-[73px] z-30 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/50">
+      <div className="bg-slate-950 border-b border-slate-800/50">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-full mb-4">

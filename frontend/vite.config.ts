@@ -69,6 +69,19 @@ export default defineConfig({
   build: {
     sourcemap: true,
     outDir: "out",
+    // 이미지 최적화 설정
+    assetsInlineLimit: 4096, // 4KB 이하는 base64로 인라인
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          // 이미지 파일을 카테고리별로 분리
+          if (assetInfo.name && /\.(png|jpe?g|svg|gif|webp)$/i.test(assetInfo.name)) {
+            return 'assets/images/[name]-[hash][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
+      },
+    },
   },
   resolve: {
     alias: {

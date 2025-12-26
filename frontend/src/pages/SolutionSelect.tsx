@@ -1,147 +1,58 @@
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { generateSolutions } from '../api/openai';
-import type { Solution } from '../api/openai';
+import { useEffect, useRef, useCallback } from 'react';
+import type { Solution } from '../types/api';
 import PageHeader from '../components/PageHeader';
-import { loadProblemImage, hasImage } from '../data/problemImages';
-
-// 최소 로딩 시간 (ms)
-const MIN_LOADING_TIME = 2000;
+import LoadingSpinner from '../components/LoadingSpinner';
+import SolutionCard from '../components/SolutionCard';
+import { COMMON_STYLES } from '../constants/styles';
+import { useNavigation } from '../hooks/useNavigation';
+import { useScrollToTop } from '../hooks/useScrollToTop';
+import { useRouteGuard } from '../hooks/useRouteGuard';
+import { useImageLoader } from '../hooks/useImageLoader';
+import { useSolutionGenerator } from '../hooks/useSolutionGenerator';
 
 export default function SolutionSelect() {
-  const navigate = useNavigate();
-  const { selectedJob, selectedProblem, selectedImage } = useStore();
-  
-  const [loading, setLoading] = useState(true);
-  const [displayImage, setDisplayImage] = useState<string | null>(null);
-  const [solutions, setSolutions] = useState<Solution[]>([]);
-  const [isReady, setIsReady] = useState(false);
-  
-  const hasLoadedRef = useRef(false);
-  const currentProblemRef = useRef<string>('');
+  const { selectedJob, selectedProblem, selectedImage, selectedSolution, setSelectedSolution } =
+    useStore();
+  const { goBack, goTo } = useNavigation();
 
-  const imageToBase64 = useCallback(async (imageUrl: string): Promise<string> => {
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }, []);
+  // 라우트 가드: job과 problem이 필수
+  useRouteGuard(['job', 'problem']);
 
-  const loadDisplayImage = useCallback(async () => {
-    try {
-      if (hasImage(selectedProblem)) {
-        const image = await loadProblemImage(selectedProblem);
-        if (image) {
-          setDisplayImage(image);
-          return;
-        }
-      }
-      
-      if (selectedImage) {
-        setDisplayImage(selectedImage);
-        return;
-      }
+  // 이미지 로더
+  const {
+    displayImage,
+    displayImages,
+    imageHeight,
+    setImageHeight,
+    load: loadImages,
+  } = useImageLoader(selectedProblem, selectedImage);
 
-      setDisplayImage(null);
-    } catch {
-      setDisplayImage(null);
-    }
-  }, [selectedProblem, selectedImage]);
+  // 솔루션 생성기
+  const { solutions, loading, isReady, generate: generateSolutions } = useSolutionGenerator(
+    selectedJob,
+    selectedProblem,
+    selectedImage
+  );
 
-  const loadSolutions = useCallback(async () => {
-    const startTime = Date.now();
-    
-    try {
-      let imageUrl: string | null = null;
-      
-      if (hasImage(selectedProblem)) {
-        const localImage = await loadProblemImage(selectedProblem);
-        if (localImage) {
-          const localImageUrl = window.location.origin + localImage;
-          imageUrl = await imageToBase64(localImageUrl);
-        }
-      } else if (selectedImage) {
-        if (selectedImage.startsWith('data:image')) {
-          imageUrl = selectedImage;
-        } else if (selectedImage.startsWith('http')) {
-          imageUrl = await imageToBase64(selectedImage);
-        }
-      }
+  const firstImageRef = useRef<HTMLImageElement | null>(null);
 
-      const generatedSolutions = await generateSolutions(
-        selectedJob, 
-        selectedProblem, 
-        imageUrl || ''
-      );
-      
-      const elapsedTime = Date.now() - startTime;
-      if (elapsedTime < MIN_LOADING_TIME) {
-        await new Promise(resolve => setTimeout(resolve, MIN_LOADING_TIME - elapsedTime));
-      }
-      
-      setSolutions(generatedSolutions);
-      await new Promise(resolve => setTimeout(resolve, 100));
-      setIsReady(true);
-      setLoading(false);
-      
-    } catch {
-      const fallbackSolutions: Solution[] = [
-        {
-          title: '상황 파악 및 분석',
-          description: '문제 상황을 정확히 파악하고 관련 문서를 검토합니다. 팀원들과 협업하여 다양한 해결 방안을 모색합니다.'
-        },
-        {
-          title: '실행 계획 수립',
-          description: '단계별 실행 계획을 수립하고 체계적으로 진행합니다. 우선순위를 정하고 효율적으로 업무를 처리합니다.'
-        },
-        {
-          title: '결과 검증 및 개선',
-          description: '실행 결과를 검증하고 피드백을 수집합니다. 지속적인 개선을 통해 더 나은 방법을 찾아갑니다.'
-        }
-      ];
-      
-      setSolutions(fallbackSolutions);
-      await new Promise(resolve => setTimeout(resolve, 100));
-      setIsReady(true);
-      setLoading(false);
-    }
-  }, [selectedJob, selectedProblem, selectedImage, imageToBase64]);
+  const handleSolutionSelect = useCallback((solution: Solution) => {
+    setSelectedSolution(solution);
+  }, [setSelectedSolution]);
 
+  // 페이지 로드 시 스크롤 및 데이터 로드
   useEffect(() => {
-    if (!selectedJob || !selectedProblem) {
-      navigate('/');
-      return;
-    }
+    loadImages();
+    generateSolutions();
+  }, [loadImages, generateSolutions]);
 
-    if (hasLoadedRef.current && currentProblemRef.current === selectedProblem) {
-      return;
-    }
-
-    hasLoadedRef.current = true;
-    currentProblemRef.current = selectedProblem;
-    
-    setLoading(true);
-    setIsReady(false);
-    setSolutions([]);
-    
-    window.scrollTo(0, 0);
-    loadDisplayImage();
-    loadSolutions();
-
-    return () => {
-      hasLoadedRef.current = false;
-      currentProblemRef.current = '';
-    };
-  }, [selectedJob, selectedProblem, navigate, loadDisplayImage, loadSolutions]);
+  // 페이지 진입 시 상단으로 스크롤
+  useScrollToTop([selectedProblem]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      <PageHeader onBack={() => navigate(-1)} />
+    <div className={COMMON_STYLES.pageBackground}>
+      <PageHeader onBack={goBack} />
 
       {/* Hero Section */}
       <div className="relative py-20 px-6 overflow-hidden">
@@ -164,18 +75,51 @@ export default function SolutionSelect() {
           </p>
 
           <div className="flex justify-center">
-            {displayImage ? (
-              <div className="relative w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl border border-slate-800/50">
+            {displayImages.length > 0 ? (
+              <div className="w-full max-w-4xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {displayImages.map((img, index) => {
+                    // 2번 이미지(index 1) 기준으로 모든 이미지 통일
+                    return (
+                      <div 
+                        key={`${selectedProblem}-img-${index}`}
+                        className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-800/50"
+                        style={imageHeight ? { height: `${imageHeight}px` } : {}}
+                      >
+                        <img 
+                          ref={index === 1 ? firstImageRef : null}
+                          src={img}
+                          alt={`${selectedProblem} - ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          loading={index > 1 ? "lazy" : "eager"}
+                          decoding="async"
+                          onLoad={(e) => {
+                            if (index === 1) {
+                              const imgElement = e.currentTarget;
+                              setImageHeight(imgElement.offsetHeight);
+                            }
+                          }}
+                          onError={() => {
+                            // 이미지 로드 실패 시 해당 이미지 제거 (필요시 구현)
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : displayImage ? (
+              <div className="relative w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-800/50">
                 <img 
                   src={displayImage}
                   alt={selectedProblem}
                   className="w-full h-auto object-contain"
-                  onError={() => setDisplayImage(null)}
+                  loading="lazy"
+                  decoding="async"
+                  onError={() => {
+                    // 이미지 로드 실패 처리 (필요시 구현)
+                  }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent pointer-events-none" />
-                <div className="absolute bottom-6 left-6 right-6 pointer-events-none">
-                  <span className="font-semibold text-white">{selectedProblem}</span>
-                </div>
               </div>
             ) : (
               <div className="w-full max-w-4xl rounded-3xl bg-slate-800/60 border border-slate-700/50 p-12 text-center">
@@ -187,6 +131,7 @@ export default function SolutionSelect() {
                 </h3>
                 <p className="text-lg text-slate-400">
                   {selectedJob} 분야에서 발생할 수 있는 업무 상황입니다.
+                  
                   <br />
                   AI가 이 상황에 맞는 해결 방안을 제시합니다.
                 </p>
@@ -199,48 +144,46 @@ export default function SolutionSelect() {
       {/* Solutions */}
       <div className="max-w-5xl mx-auto px-6 pb-32">
         {loading || !isReady ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 border-4 border-slate-800 border-t-slate-600 rounded-full animate-spin mb-6" />
-            <p className="text-lg text-slate-400">AI가 솔루션을 생성하고 있습니다...</p>
-            <p className="text-sm text-slate-500 mt-2">잠시만 기다려주세요</p>
-          </div>
+          <LoadingSpinner
+            message="AI가 솔루션을 생성하고 있습니다..."
+            subMessage="잠시만 기다려주세요"
+          />
         ) : (
           <div className="space-y-6">
-            {solutions.map((solution, index) => (
-              <div
-                key={`${selectedProblem}-${solution.title}-${index}`}
-                className="solution-card bg-slate-800/60 border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/50 hover:bg-slate-800/70 transition-all duration-300"
-                style={{ animationDelay: `${index * 0.2}s` }}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-10 h-10 bg-slate-700/80 border border-slate-600/50 rounded-lg flex items-center justify-center">
-                    <span className="text-lg font-semibold text-white">{index + 1}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-xl font-semibold text-white mb-3 leading-tight">
-                      {solution.title}
-                    </h3>
-                    <p className="text-slate-300 leading-relaxed text-base">
-                      {solution.description}
-                    </p>
-                  </div>
-                </div>
+            {solutions.map((solution, index) => {
+              const isSelected =
+                selectedSolution?.title === solution.title &&
+                selectedSolution?.description === solution.description;
+
+              const handleClick = () => handleSolutionSelect(solution);
+
+              return (
+                <SolutionCard
+                  key={`${selectedProblem}-${solution.title}-${index}`}
+                  solution={solution}
+                  index={index}
+                  isSelected={isSelected}
+                  onClick={handleClick}
+                />
+              );
+            })}
+            
+            {selectedSolution && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={() => goTo('/report')}
+                  className={COMMON_STYLES.buttonPrimary}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>선택한 솔루션으로 진행</span>
+                    <i className="ri-arrow-right-line" />
+                  </span>
+                </button>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
-      
-      <style>{`
-        @keyframes fadeInSlide {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .solution-card {
-          opacity: 0;
-          animation: fadeInSlide 0.6s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 }

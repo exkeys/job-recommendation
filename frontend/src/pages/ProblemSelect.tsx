@@ -1,28 +1,27 @@
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { useEffect, useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { problems, jobCategories } from '../data/problems';
 import ProblemCard from '../components/ProblemCard';
 import PageHeader from '../components/PageHeader';
+import { COMMON_STYLES } from '../constants/styles';
+import { useNavigation } from '../hooks/useNavigation';
+import { useScrollToTop } from '../hooks/useScrollToTop';
+import { useRouteGuard } from '../hooks/useRouteGuard';
 
 export default function ProblemSelect() {
-  const navigate = useNavigate();
   const { selectedJob, setSelectedProblem } = useStore();
+  const { goBack, goTo } = useNavigation();
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // 라우트 가드: job이 필수
+  useRouteGuard(['job']);
 
-  useEffect(() => {
-    if (!selectedJob) {
-      navigate('/');
-    }
-  }, [selectedJob, navigate]);
+  // 페이지 진입 시 상단으로 스크롤
+  useScrollToTop();
 
-  const handleProblemSelect = (problem: string, image: string) => {
+  const handleProblemSelect = useCallback((problem: string, image: string) => {
     setSelectedProblem(problem, image);
-    navigate('/solution-select');
-  };
+    goTo('/solution-select');
+  }, [setSelectedProblem, goTo]);
 
   // 선택한 직군에 맞는 문제만 필터링
   const formattedProblems = useMemo(() => {
@@ -51,8 +50,8 @@ export default function ProblemSelect() {
   }, [selectedJob]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      <PageHeader onBack={() => navigate(-1)} />
+    <div className={COMMON_STYLES.pageBackground}>
+      <PageHeader onBack={goBack} />
 
       {/* Title Section */}
       <div className="bg-slate-950 border-b border-slate-800/50">
@@ -76,13 +75,16 @@ export default function ProblemSelect() {
       {/* Problems Grid */}
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {formattedProblems.map((problem, index) => (
-            <ProblemCard
-              key={index}
-              problem={problem}
-              onClick={() => handleProblemSelect(problem.title, problem.image)}
-            />
-          ))}
+          {formattedProblems.map((problem, index) => {
+            const handleClick = () => handleProblemSelect(problem.title, problem.image);
+            return (
+              <ProblemCard
+                key={`${problem.title}-${index}`}
+                problem={problem}
+                onClick={handleClick}
+              />
+            );
+          })}
         </div>
       </div>
     </div>

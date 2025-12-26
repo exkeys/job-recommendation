@@ -1,31 +1,18 @@
-import { BrowserRouter, useLocation } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { AppRoutes } from "./router";
-import { useEffect } from "react";
-
-function ScrollToTop() {
-  const { pathname } = useLocation();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-
-  return null;
-}
+import ErrorBoundary from "./components/ErrorBoundary";
 
 function AppContent() {
-  return (
-    <>
-      <ScrollToTop />
-      <AppRoutes />
-    </>
-  );
+  return <AppRoutes />;
 }
 
 function App() {
   return (
-    <BrowserRouter basename={__BASE_PATH__}>
-      <AppContent />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter basename={__BASE_PATH__}>
+        <AppContent />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

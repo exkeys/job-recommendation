@@ -1,12 +1,13 @@
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { jobCategories } from '../data/problems';
-import { getJobImage } from '../data/jobImages';
+import JobCard from '../components/JobCard';
+import { useNavigation } from '../hooks/useNavigation';
+import { useScrollToTop } from '../hooks/useScrollToTop';
 
 export default function JobSelect() {
-  const navigate = useNavigate();
   const { setSelectedJob } = useStore();
+  const navigation = useNavigation();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [openIndex, setOpenIndex] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -51,9 +52,7 @@ export default function JobSelect() {
     }    
   ];
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  useScrollToTop();
 
   const handleJobSelect = (job: string) => {
     setSelectedJob(job);
@@ -62,7 +61,7 @@ export default function JobSelect() {
   };
 
   const handleStartClick = () => {
-    navigate('/job-experience');
+    navigation.goTo('/job-experience');
   };
 
   return (
@@ -75,6 +74,9 @@ export default function JobSelect() {
             src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1920&q=80"
             alt="회의하는 직장인들"
             className="w-full h-full object-cover opacity-85"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-slate-950/35 to-slate-950/75" />
         </div>
@@ -117,9 +119,9 @@ export default function JobSelect() {
           <div className="flex items-center justify-center">
             <button
               onClick={handleStartClick}
-              className="inline-flex items-center gap-3 px-10 py-5 bg-white text-slate-950 rounded-full font-semibold hover:bg-slate-100 transition-all text-lg"
+              className="inline-flex items-center gap-3 px-11 py-4 bg-white text-slate-950 rounded-full font-semibold hover:bg-slate-100 transition-all text-lg"
             >
-               시작하기
+              시작하기
               <i className="ri-arrow-right-line"></i>
             </button>
           </div>
@@ -151,6 +153,8 @@ export default function JobSelect() {
                     src={feature.image}
                     alt={feature.title}
                     className="w-full h-full object-cover opacity-70 group-hover:opacity-80 transition-opacity duration-300"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="absolute inset-0 bg-gradient-to-b from-slate-950/35 via-slate-950/30 to-slate-950/55"></div>
                 </div>
@@ -191,39 +195,14 @@ export default function JobSelect() {
           {/* Jobs Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {jobCategories.map((job, index) => (
-              <button
+              <JobCard
                 key={index}
-                onClick={() => handleJobSelect(job.name)}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-                className="group relative p-5 border border-slate-800/80 rounded-xl hover:border-slate-600 transition-all duration-300 text-left overflow-hidden"
-              >
-                {/* Background Image */}
-                <div className="absolute inset-0">
-                  <img 
-                    src={getJobImage(job.name)}
-                    alt={job.name}
-                    className="w-full h-full object-cover opacity-75 group-hover:opacity-85 transition-opacity duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-slate-950/35 via-slate-950/25 to-slate-950/45"></div>
-                </div>
-                
-                {/* Content */}
-                <div className="relative z-10 flex flex-col">
-                  <div className="w-10 h-10 bg-slate-800/60 backdrop-blur-sm border border-slate-600/50 rounded-lg flex items-center justify-center mb-4 group-hover:bg-slate-700/70 group-hover:scale-105 transition-all duration-300">
-                    <i className={`${job.icon} text-slate-200 text-lg`}></i>
-                  </div>
-                  
-                  <h3 className="text-sm font-semibold text-white mb-1 group-hover:text-slate-100 transition-all">
-                    {job.name}
-                  </h3>
-                  
-                  <div className="flex items-center gap-1 text-slate-400 group-hover:text-slate-300 transition-colors">
-                    <span className="text-xs">체험하기</span>
-                    <i className={`ri-arrow-right-s-line text-sm transition-transform ${hoveredIndex === index ? 'translate-x-0.5' : ''}`}></i>
-                  </div>
-                </div>
-              </button>
+                job={job}
+                index={index}
+                hoveredIndex={hoveredIndex}
+                onSelect={handleJobSelect}
+                onHover={setHoveredIndex}
+              />
             ))}
           </div>
         </div>
@@ -411,17 +390,19 @@ export default function JobSelect() {
               );
             })()}
           </div>
+        </div>
 
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-10 text-center shadow-2xl hover:border-slate-700 transition-all duration-300">
-            <h3 className="text-3xl font-bold text-white mb-4">
+        <div className="relative z-10 max-w-6xl mx-auto">
+          <div className="text-center pt-32 pb-12">
+            <h3 className="text-6xl md:text-7xl font-bold text-white mb-6">
               더 궁금한 점이 있으신가요?
             </h3>
-            <p className="text-slate-400 mb-8">
+            <p className="text-2xl md:text-3xl text-slate-400 mb-10">
               직접 체험해보시고 AI와 대화하며 궁금증을 해결하세요
             </p>
             <button 
               onClick={handleStartClick}
-              className="relative px-10 py-5 bg-white text-slate-950 rounded-full font-semibold hover:bg-slate-100 transition-all text-lg overflow-hidden group"
+              className="relative px-12 py-4 bg-white text-slate-950 rounded-full font-semibold hover:bg-slate-100 transition-all text-xl overflow-hidden group"
             >
               <span className="relative z-10 flex items-center gap-2">
                 무료로 시작하기

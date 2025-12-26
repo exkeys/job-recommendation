@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 
 interface ProblemCardProps {
   problem: {
@@ -10,7 +10,7 @@ interface ProblemCardProps {
   onClick: () => void;
 }
 
-export default function ProblemCard({ problem, onClick }: ProblemCardProps) {
+function ProblemCard({ problem, onClick }: ProblemCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -40,3 +40,5 @@ export default function ProblemCard({ problem, onClick }: ProblemCardProps) {
     </button>
   );
 }
+
+export default memo(ProblemCard);

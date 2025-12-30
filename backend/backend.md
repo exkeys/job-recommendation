@@ -12,7 +12,7 @@
 > - **터미널 창 2개 필요**: 백엔드와 프론트엔드를 각각 다른 터미널에서 실행
 > - **첫 번째 터미널 (백엔드)**: `PS C:\jobs_one>` 위치에서 `cd backend; npm run dev`
 > - **두 번째 터미널 (프론트엔드)**: `PS C:\jobs_one>` 위치에서 `cd frontend; npm run dev`
-> - 또는 각각 `cd backend` 후 `npm run dev`, `cd frontend` 후 `npm run dev` (두 줄로 실행)
+> - 또는 각각 `cd backend` 후 `npm run dev`, 다른 터미널 창에서 `cd frontend` 후 `npm run dev` (두 줄로 실행)
 
 ---
 
